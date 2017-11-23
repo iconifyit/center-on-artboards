@@ -1,14 +1,17 @@
-#target Illustrator
-#include "utils.jsx";
+#target illustrator
+
+#include "/Users/scott/github/iconify/jsx-common/JSON.jsxinc";
+#include "/Users/scott/github/iconify/jsx-common/Utils.jsxinc";
 
 var CONFIG = {
-	LOGGING			: true,
-	LOG_FOLDER 		: '~/Desktop/ai-logs/',
-	LOG_FILE_PATH	: '~/Desktop/ai-logs/' + Utils.doDateFormat(new Date()) + '-log.txt',
+	LOGGING       : true,
+	LOG_FOLDER    : '~/Desktop/ai-logs/',
+	LOG_FILE_PATH : '~/Desktop/ai-logs/' + Utils.doDateFormat(new Date()) + '-log.txt',
 };
 
-var originalInteractionLevel = userInteractionLevel;
-userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+var logger = new Logger("ai-center", CONFIG.LOG_FOLDER);
+
+Utils.displayAlertsOff();
 
 app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
 
@@ -20,7 +23,7 @@ if ( app.documents.length > 0) {
 
     var interrupt = false;
 
-    app.executeMenuCommand("fitall");
+    app.executeMenuCommand('fitall');
 
     var count = doc.artboards.length;
     for (i = 0; i < count; i++) {
@@ -38,16 +41,18 @@ if ( app.documents.length > 0) {
 
         // If there are no visible items, update the progress bar and continue.
 		if (selection.length == 0) {
-            Utils.updateProgress('Artboard ' + i + ' has no visible items. Skipping.');
+            Utils.updateProgress(
+                Utils.i18n('Artboard %1 has no visible items. Skipping.', i)
+            );
             continue;
         }
 
 		for (x = 0 ; x < selection.length; x++) {
             try {
                 app.executeMenuCommand('group');
-                Utils.updateProgressMessage('Grouping selection');
+                Utils.updateProgressMessage(Utlis.i18n('Grouping selection'));
                 Utils.updateProgressMessage(
-                    'Selection is ' + (Utils.isVisibleAndUnlocked(selection[x]) ? 'Visible' : 'Hidden')
+                    Utils.i18n('Selection is ' + (Utils.isVisibleAndUnlocked(selection[x]) ? 'Visible' : 'Hidden'))
                 );
                 if (! Utils.isVisibleAndUnlocked(selection[x])) continue;
                 selection[x].position = [
@@ -56,19 +61,16 @@ if ( app.documents.length > 0) {
 				];
             }
             catch(e) {
-                Utils.logger('ERROR - ' + e.message);
+                logger.error(e.message);
             }
         }
         redraw();
-        Utils.updateProgress('Selection centered');
+        Utils.updateProgress(Utils.i18n('Selection centered'));
     }
     Utils.progress.close();
 }
 else  {  
-	alert("There are no open documents");  
-} 
-
-try {
-	userInteractionLevel = originalInteractionLevel;
+	alert(Utils.i18n('There are no open documents'));
 }
-catch(ex) {/*Exit Gracefully*/}
+
+Utils.displayAlertsOn();
