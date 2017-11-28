@@ -72,10 +72,9 @@ var Module = (function(CONFIG) {
     var Instance = function() {
         app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
 
-        if ( app.documents.length > 0) {
+        if (app.documents.length > 0) {
 
-            var doc  = app.activeDocument;
-
+            var doc   = app.activeDocument;
             var count = doc.artboards.length;
 
             if (doc.selection.length > 0) {
@@ -86,56 +85,47 @@ var Module = (function(CONFIG) {
             Utils.showProgressBar(doc.artboards.length);
 
             for (i = 0; i < count; i++) {
-                if (doc.selection.length) {
-                    // var s = selection[i];
-                    // s[x].position = [
-                    //     Math.round((right - s[x].width)/2),
-                    //     Math.round((bottom + s[x].height)/2)
-                    // ];
+                doc.artboards.setActiveArtboardIndex(i);
+                doc.selection = null;
+
+                var board  = doc.artboards[doc.artboards.getActiveArtboardIndex()];
+                var right  = board.artboardRect[2];
+                var bottom = board.artboardRect[3];
+
+                doc.selectObjectsOnActiveArtboard();
+
+                // If there are no visible items, update the progress bar and continue.
+                if (doc.selection.length == 0) {
+                    Utils.updateProgress(
+                        localize({en_US: 'Artboard %1 has no visible items. Skipping.'}, i)
+                    );
+                    continue;
                 }
-                else {
-                    doc.artboards.setActiveArtboardIndex(i);
-                    doc.selection = null;
 
-                    var activeAB = doc.artboards[doc.artboards.getActiveArtboardIndex()];
-                    var right    = activeAB.artboardRect[2];
-                    var bottom   = activeAB.artboardRect[3];
-
-                    doc.selectObjectsOnActiveArtboard();
-
-                    // If there are no visible items, update the progress bar and continue.
-                    if (selection.length == 0) {
-                        Utils.updateProgress(
-                            Utils.i18n('Artboard %1 has no visible items. Skipping.', i)
+                for (x = 0 ; x < doc.selection.length; x++) {
+                    try {
+                        app.executeMenuCommand('group');
+                        Utils.updateProgressMessage(localize({en_US: 'Grouping selection'}));
+                        Utils.updateProgressMessage(
+                            localize({en_US: 'Selection is %1'}, Utils.isVisibleAndUnlocked(doc.selection[x]) ? 'Visible' : 'Hidden')
                         );
-                        continue;
+                        if (! Utils.isVisibleAndUnlocked(doc.selection[x])) continue;
+                        doc.selection[x].position = [
+                            Math.round((right - doc.selection[x].width)/2),
+                            Math.round((bottom + doc.selection[x].height)/2)
+                        ];
                     }
-
-                    for (x = 0 ; x < selection.length; x++) {
-                        try {
-                            app.executeMenuCommand('group');
-                            Utils.updateProgressMessage(Utlis.i18n('Grouping selection'));
-                            Utils.updateProgressMessage(
-                                Utils.i18n('Selection is ' + (Utils.isVisibleAndUnlocked(selection[x]) ? 'Visible' : 'Hidden'))
-                            );
-                            if (! Utils.isVisibleAndUnlocked(selection[x])) continue;
-                            selection[x].position = [
-                                Math.round((right - selection[x].width)/2),
-                                Math.round((bottom + selection[x].height)/2)
-                            ];
-                        }
-                        catch(e) {
-                            logger.error(e.message);
-                        }
+                    catch(e) {
+                        logger.error(e.message);
                     }
                 }
                 redraw();
-                Utils.updateProgress(Utils.i18n('Selection centered'));
+                Utils.updateProgress(localize({en_US: 'Selection centered'}));
             }
             Utils.progress.close();
         }
         else  {
-            alert(Utils.i18n('There are no open documents'));
+            alert(localize({en_US: 'There are no open documents'}))
         }
     }
 
