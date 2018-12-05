@@ -36,7 +36,7 @@ You are free to use, modify, and distribute this script as you see fit as long a
 
 Attribution:
 
-Center on Artboards by:
-Scott Lewis <scott@atomiclotus.net>
-https://atomiclotus.net
+Center on Artboards by:<br>
+Scott Lewis <scott@atomiclotus.net><br>
+[https://atomiclotus.net](https://atomiclotus.net)
 
