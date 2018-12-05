@@ -30,7 +30,8 @@
 /**
  * Include the libraries we need.
  */
-#includepath "/Users/scott/github/iconify/jsx-common/";
+#includepath "lib/";
+
 
 #include "JSON.jsxinc";
 #include "Utils.jsxinc";
@@ -39,7 +40,8 @@
 /**
  * Name that script.
  */
-#script "Ai Sessions";
+#script "Center on Artboards";
+
 
 /**
  * Disable Illustrator's alerts.
@@ -55,7 +57,8 @@ Utils.displayAlertsOff();
  */
 var CONFIG = {
     APP_NAME  : 'ai-center-items',
-    LOGFOLDER : "/Users/scott/Desktop/ai-logs"
+    LOGFOLDER : Folder.myDocuments + "/ai-logs",
+    SCALE     : 100
 };
 
 // End global setup
@@ -63,7 +66,7 @@ var CONFIG = {
 var Module = (function(CONFIG) {
 
     // Create a logger instance.
-    var logger = new Logger(CONFIG.APP_NAME, CONFIG.LOGFOLDER);
+    logger = new Logger(CONFIG.APP_NAME, CONFIG.LOGFOLDER);
 
     /**
      * Create a new instance of this module.
@@ -77,50 +80,90 @@ var Module = (function(CONFIG) {
             var doc   = app.activeDocument;
             var count = doc.artboards.length;
 
+            // TODO: Implement centering of only selected items.
             if (doc.selection.length > 0) {
-                alert(localize({en_US: 'Selection centering is not yet implemented'}));
+                try {
+
+                    var board  = doc.artboards[doc.artboards.getActiveArtboardIndex()];
+                    var right  = board.artboardRect[2];
+                    var bottom = board.artboardRect[3];
+
+                    // If there are no visible items, update the progress bar and continue.
+                    if (doc.selection.length == 0) return;
+
+                    doc.selectObjectsOnActiveArtboard();
+                    app.executeMenuCommand('group');
+
+                    for (x = 0 ; x < doc.selection.length; x++) {
+                        try {
+                            if (! Utils.isVisibleAndUnlocked(doc.selection[x])) continue;
+                            doc.selection[x].position = [
+                                Math.round((right - doc.selection[x].width)/2),
+                                Math.round((bottom + doc.selection[x].height)/2)
+                            ];
+                            if (typeof(doc.selection[x].resize) == "function"
+                                && parseInt(CONFIG.SCALE) != 100) {
+
+                                doc.selection[x].resize(CONFIG.SCALE, CONFIG.SCALE);
+                            }
+                        }
+                        catch(e) {
+                            logger.error(e.message);
+                        }
+                    }
+                }
+                catch(e) {
+                    logger.error(e.message);
+                }
+                redraw();
                 return;
             }
+            else {
+                Utils.showProgressBar(count);
 
-            Utils.showProgressBar(doc.artboards.length);
+                for (i = 0; i < count; i++) {
+                    doc.artboards.setActiveArtboardIndex(i);
+                    doc.selection = null;
 
-            for (i = 0; i < count; i++) {
-                doc.artboards.setActiveArtboardIndex(i);
-                doc.selection = null;
+                    var board  = doc.artboards[doc.artboards.getActiveArtboardIndex()];
+                    var right  = board.artboardRect[2];
+                    var bottom = board.artboardRect[3];
 
-                var board  = doc.artboards[doc.artboards.getActiveArtboardIndex()];
-                var right  = board.artboardRect[2];
-                var bottom = board.artboardRect[3];
+                    doc.selectObjectsOnActiveArtboard();
 
-                doc.selectObjectsOnActiveArtboard();
-
-                // If there are no visible items, update the progress bar and continue.
-                if (doc.selection.length == 0) {
-                    Utils.updateProgress(
-                        localize({en_US: 'Artboard %1 has no visible items. Skipping.'}, i)
-                    );
-                    continue;
-                }
-
-                for (x = 0 ; x < doc.selection.length; x++) {
-                    try {
-                        app.executeMenuCommand('group');
-                        Utils.updateProgressMessage(localize({en_US: 'Grouping selection'}));
-                        Utils.updateProgressMessage(
-                            localize({en_US: 'Selection is %1'}, Utils.isVisibleAndUnlocked(doc.selection[x]) ? 'Visible' : 'Hidden')
+                    // If there are no visible items, update the progress bar and continue.
+                    if (doc.selection.length == 0) {
+                        Utils.updateProgress(
+                            localize({en_US: 'Artboard %1 has no visible items. Skipping.'}, i)
                         );
-                        if (! Utils.isVisibleAndUnlocked(doc.selection[x])) continue;
-                        doc.selection[x].position = [
-                            Math.round((right - doc.selection[x].width)/2),
-                            Math.round((bottom + doc.selection[x].height)/2)
+                        continue;
+                    }
+
+                    app.executeMenuCommand('group');
+
+                    try {
+                        var selection = doc.selection[0];
+                        if (! Utils.isVisibleAndUnlocked(selection)) {
+                            logger.infolocalize({en_US: 'Artboard %1 has no visible items. Skipping.'}, i);
+                            continue;
+                        }
+                        selection.position = [
+                            Math.round((right - selection.width)/2),
+                            Math.round((bottom + selection.height)/2)
                         ];
+                        if (typeof(selection.resize) == "function"
+                            && parseInt(CONFIG.SCALE) != 100) {
+
+                            selection.resize(CONFIG.SCALE, CONFIG.SCALE);
+                        }
                     }
                     catch(e) {
                         logger.error(e.message);
+                        continue;
                     }
+                    redraw();
+                    Utils.updateProgress(localize({en_US: 'Items on artboard centered'}));
                 }
-                redraw();
-                Utils.updateProgress(localize({en_US: 'Selection centered'}));
             }
             Utils.progress.close();
         }
